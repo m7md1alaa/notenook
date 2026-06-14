@@ -1,7 +1,7 @@
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url'
-import { getAssetInfo, createShapesForAssets, type Editor } from 'tldraw'
+import { type Editor } from 'tldraw'
 import {
   editorAtom,
   pageLayoutAtom,
@@ -32,11 +32,12 @@ async function loadPdf(
 }
 
 async function insertImage(editor: Editor, file: File): Promise<void> {
-  const asset = await getAssetInfo(editor, file)
-  if (!asset) return
-
   const vp = editor.getViewportPageBounds()
-  await createShapesForAssets(editor, [asset], { x: vp.x + vp.w / 2, y: vp.y + vp.h / 2 })
+  await editor.putExternalContent({
+    type: 'files',
+    files: [file],
+    point: { x: vp.x + vp.w / 2, y: vp.y + vp.h / 2 },
+  })
 }
 
 async function switchToPdf(
