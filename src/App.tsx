@@ -5,7 +5,15 @@ import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url'
 import { PdfLayer } from "./components/PdfLayer";
 import { CanvasLayer } from "./components/CanvasLayer";
 import { Toolbar } from "./components/Toolbar";
-import { pdfDocAtom, pageLayoutAtom, viewportSizeAtom, PAGE_GAP, type PageLayoutEntry } from "./store";
+import {
+  pdfDocAtom,
+  pageLayoutAtom,
+  viewportSizeAtom,
+  pdfListAtom,
+  activePdfIdAtom,
+  PAGE_GAP,
+  type PageLayoutEntry,
+} from "./store";
 import { loadSession } from "./db";
 import "./styles.css";
 
@@ -16,6 +24,8 @@ export default function App() {
   const setViewportSize = useSetAtom(viewportSizeAtom);
   const setPdfDoc = useSetAtom(pdfDocAtom);
   const setLayout = useSetAtom(pageLayoutAtom);
+  const setPdfList = useSetAtom(pdfListAtom);
+  const setActivePdfId = useSetAtom(activePdfIdAtom);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -35,9 +45,15 @@ export default function App() {
     ;(async () => {
       try {
         const session = await loadSession()
-        if (!session) return
+        if (!session || session.pdfs.length === 0) return
 
-        const doc = await pdfjsLib.getDocument({ data: session.pdfData }).promise
+        setPdfList(session.pdfs)
+        setActivePdfId(session.activePdfId)
+
+        const activeEntry = session.pdfs.find((p) => p.id === session.activePdfId)
+        if (!activeEntry) return
+
+        const doc = await pdfjsLib.getDocument({ data: activeEntry.data }).promise
         setPdfDoc(doc)
 
         const layout: PageLayoutEntry[] = []
@@ -53,7 +69,7 @@ export default function App() {
         console.error('[app] failed to restore session:', err)
       }
     })()
-  }, [setPdfDoc, setLayout])
+  }, [setPdfDoc, setLayout, setPdfList, setActivePdfId])
 
   return (
     <div className="app">
