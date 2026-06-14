@@ -45,7 +45,7 @@ async function switchToPdf(
   setPdfDoc: (doc: pdfjsLib.PDFDocumentProxy | null) => void,
   setLayout: (layout: PageLayoutEntry[]) => void,
 ) {
-  const { doc, layout } = await loadPdf(entry.data)
+  const { doc, layout } = await loadPdf(entry.data.slice())
   setPdfDoc(doc)
   setLayout(layout)
 

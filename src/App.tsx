@@ -53,7 +53,7 @@ export default function App() {
         const activeEntry = session.pdfs.find((p) => p.id === session.activePdfId)
         if (!activeEntry) return
 
-        const doc = await pdfjsLib.getDocument({ data: activeEntry.data }).promise
+        const doc = await pdfjsLib.getDocument({ data: activeEntry.data.slice() }).promise
         setPdfDoc(doc)
 
         const layout: PageLayoutEntry[] = []
