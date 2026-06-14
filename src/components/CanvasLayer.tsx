@@ -59,23 +59,32 @@ export function CanvasLayer() {
     (editor: Editor) => {
       setEditor(editor);
 
+      let prevCam = editor.getCamera();
+      let rafId: number | null = null;
+
       const syncCamera = () => {
+        rafId = null;
         const c = editor.getCamera();
+        if (c.x === prevCam.x && c.y === prevCam.y && c.z === prevCam.z) return;
+        prevCam = c;
         setCamera({ x: c.x, y: c.y, z: c.z });
       };
 
       syncCamera();
 
-      // Camera position is stored on the page's "instance page state" record,
-      // which is part of the session store — any change to it triggers this.
       const unsubscribe = editor.store.listen(
         () => {
-          syncCamera();
+          if (rafId === null) {
+            rafId = requestAnimationFrame(syncCamera);
+          }
         },
-        { source: "user", scope: "session" },
+        { scope: "session" },
       );
 
-      return () => unsubscribe();
+      return () => {
+        unsubscribe();
+        if (rafId !== null) cancelAnimationFrame(rafId);
+      };
     },
     [setCamera, setEditor],
   );
