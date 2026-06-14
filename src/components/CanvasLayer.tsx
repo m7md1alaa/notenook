@@ -111,6 +111,7 @@ export function CanvasLayer() {
   return (
     <div className="canvas-layer">
       <Tldraw
+        persistenceKey="notenook"
         shapeUtils={shapeUtils}
         tools={tools}
         components={components}

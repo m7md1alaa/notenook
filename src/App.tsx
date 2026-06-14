@@ -1,14 +1,21 @@
 import { useEffect, useRef } from "react";
 import { useSetAtom } from "jotai";
+import * as pdfjsLib from 'pdfjs-dist'
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url'
 import { PdfLayer } from "./components/PdfLayer";
 import { CanvasLayer } from "./components/CanvasLayer";
 import { Toolbar } from "./components/Toolbar";
-import { viewportSizeAtom } from "./store";
+import { pdfDocAtom, pageLayoutAtom, viewportSizeAtom, PAGE_GAP, type PageLayoutEntry } from "./store";
+import { loadSession } from "./db";
 import "./styles.css";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker
 
 export default function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const setViewportSize = useSetAtom(viewportSizeAtom);
+  const setPdfDoc = useSetAtom(pdfDocAtom);
+  const setLayout = useSetAtom(pageLayoutAtom);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -23,6 +30,30 @@ export default function App() {
     observer.observe(el);
     return () => observer.disconnect();
   }, [setViewportSize]);
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const session = await loadSession()
+        if (!session) return
+
+        const doc = await pdfjsLib.getDocument({ data: session.pdfData }).promise
+        setPdfDoc(doc)
+
+        const layout: PageLayoutEntry[] = []
+        let top = 0
+        for (let i = 0; i < doc.numPages; i++) {
+          const page = await doc.getPage(i + 1)
+          const viewport = page.getViewport({ scale: 1 })
+          layout.push({ index: i, width: viewport.width, height: viewport.height, top })
+          top += viewport.height + PAGE_GAP
+        }
+        setLayout(layout)
+      } catch (err) {
+        console.error('[app] failed to restore session:', err)
+      }
+    })()
+  }, [setPdfDoc, setLayout])
 
   return (
     <div className="app">

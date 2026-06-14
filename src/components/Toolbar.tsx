@@ -2,6 +2,7 @@ import { useAtomValue, useSetAtom } from 'jotai'
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url'
 import { editorAtom, pageLayoutAtom, pdfDocAtom, PAGE_GAP, type PageLayoutEntry } from '../store'
+import { saveSession } from '../db'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker
 
@@ -14,7 +15,7 @@ export function Toolbar() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    const data = await file.arrayBuffer()
+    const data = new Uint8Array(await file.arrayBuffer())
     const doc = await pdfjsLib.getDocument({ data }).promise
     setPdfDoc(doc)
 
@@ -27,6 +28,18 @@ export function Toolbar() {
       top += viewport.height + PAGE_GAP
     }
     setLayout(layout)
+
+    // Clear previous annotations when switching to a new PDF
+    const shapeIds = editor?.getCurrentPageShapeIds()
+    if (shapeIds && shapeIds.size > 0) {
+      editor?.deleteShapes([...shapeIds])
+    }
+
+    try {
+      await saveSession({ pdfData: data, pdfName: file.name })
+    } catch (err) {
+      console.error('[toolbar] failed to save session:', err)
+    }
 
     editor?.setCamera({ x: 0, y: 0, z: 1 })
     e.target.value = ''
